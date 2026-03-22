@@ -62,24 +62,39 @@ function playAlertSound() {
 
 // ================= LOGIN CEO — Email & Parolă =================
 
-// Verificam sesiunea — DOAR CEO real, nu useri anonimi
-firebase.auth().onAuthStateChanged(user => {
-    if (user && !user.isAnonymous) {
-        // E logat cu email/parola — CEO real
-        if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        document.getElementById('login-screen').style.opacity = '0';
-        setTimeout(() => {
+// AUTH PERSISTENCE LOCAL — CEO nu mai baga parola la fiecare refresh
+firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL).then(() => {
+    // Verificam sesiunea dupa ce persistence e setat
+    firebase.auth().onAuthStateChanged(user => {
+        if (user && !user.isAnonymous) {
+            // CEO deja logat — direct in dashboard
+            if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const loginScreen = document.getElementById('login-screen');
+            if (loginScreen) {
+                loginScreen.style.opacity = '0';
+                setTimeout(() => {
+                    loginScreen.style.display = 'none';
+                    initDashboard();
+                }, 200);
+            }
+        } else if (user && user.isAnonymous) {
+            firebase.auth().signOut();
+            document.getElementById('login-screen').style.display = 'flex';
+        } else {
+            document.getElementById('login-screen').style.display = 'flex';
+        }
+    });
+}).catch(err => {
+    console.log('Persistence err:', err);
+    // Fallback fara persistence
+    firebase.auth().onAuthStateChanged(user => {
+        if (user && !user.isAnonymous) {
             document.getElementById('login-screen').style.display = 'none';
             initDashboard();
-        }, 300);
-    } else if (user && user.isAnonymous) {
-        // E un Insider anonim din VV Beta — delogam si aratam loginul
-        firebase.auth().signOut();
-        document.getElementById('login-screen').style.display = 'flex';
-    } else {
-        // Niciun user — aratam loginul
-        document.getElementById('login-screen').style.display = 'flex';
-    }
+        } else {
+            document.getElementById('login-screen').style.display = 'flex';
+        }
+    });
 });
 
 function checkLogin() {
@@ -94,16 +109,18 @@ function checkLogin() {
         return;
     }
 
-    btn.textContent = 'SE VERIFICĂ...';
+    btn.textContent = 'SE AUTENTIFICĂ...';
     btn.style.opacity = '0.6';
+    btn.style.pointerEvents = 'none';
     errMsg.style.display = 'none';
 
     if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
-    firebase.auth().signInWithEmailAndPassword(email, pass)
+    // Setam persistence inainte de login
+    firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+        .then(() => firebase.auth().signInWithEmailAndPassword(email, pass))
         .then(cred => {
-            // Login reusit
-            btn.textContent = 'AUTENTIFICAT ✓';
+            btn.textContent = 'BINE AI VENIT ✓';
             document.getElementById('login-screen').style.opacity = '0';
             setTimeout(() => {
                 document.getElementById('login-screen').style.display = 'none';
@@ -113,12 +130,25 @@ function checkLogin() {
         .catch(err => {
             btn.textContent = 'INTRĂ ÎN SISTEM';
             btn.style.opacity = '1';
-            if (err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
+            btn.style.pointerEvents = 'auto';
+
+            console.log('Login error:', err.code);
+
+            if (err.code === 'auth/wrong-password' || 
+                err.code === 'auth/user-not-found' ||
+                err.code === 'auth/invalid-credential') {
                 errMsg.textContent = 'Email sau parolă incorectă.';
             } else if (err.code === 'auth/invalid-email') {
                 errMsg.textContent = 'Email invalid.';
+            } else if (err.code === 'auth/too-many-requests') {
+                errMsg.textContent = 'Prea multe încercări. Așteaptă 1 minut.';
+            } else if (err.code === 'auth/network-request-failed') {
+                errMsg.textContent = 'Fără conexiune. Verifică internetul.';
             } else {
-                errMsg.textContent = 'Eroare conexiune. Încearcă din nou.';
+                // Retry automat dupa 2s pentru erori temporare
+                errMsg.textContent = 'Se reîncearcă...';
+                setTimeout(() => checkLogin(), 2000);
+                return;
             }
             errMsg.style.display = 'block';
         });
