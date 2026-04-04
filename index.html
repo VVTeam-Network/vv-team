@@ -43,6 +43,27 @@
             <div class="money-value" id="total-vv-bank">0 VV</div>
         </div>
 
+        <!-- VVhi Shadow Mode indicator -->
+        <div onclick="VVhi.toggle()" style="
+            margin: 0 16px 16px;
+            padding: 10px 14px;
+            background: rgba(212,175,55,0.06);
+            border: 1px solid rgba(212,175,55,0.15);
+            border-radius: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        " title="Click pentru toggle VVhi">
+            <span style="font-size:11px;">🧠</span>
+            <div>
+                <div style="font-size:9px; color:rgba(212,175,55,0.5); letter-spacing:2px; font-weight:700;">VVhi SHADOW</div>
+                <div style="font-size:10px; color:rgba(212,175,55,0.8); font-weight:600; margin-top:1px;" id="vvhi-status-label">ACTIV</div>
+            </div>
+            <div style="width:6px;height:6px;border-radius:50%;background:#D4AF37;box-shadow:0 0 6px #D4AF37;margin-left:auto;" id="vvhi-dot"></div>
+        </div>
+
         <div class="nav-item active" onclick="switchSection('feed', this)">
             <i class="fas fa-stream"></i> <span>Global Intel Feed</span>
         </div>
@@ -258,6 +279,7 @@
 
     </div>
 
+    <script src="vvhi-shadow.js"></script>
     <script src="vv-team-logic.js"></script>
 </body>
 </html>
