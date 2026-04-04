@@ -176,12 +176,23 @@ function secureLogoutCEO() {
 }
 
 // ================= NAVIGATIE =================
+var _ceoMapLoaded = false;
+
 function switchSection(id, element) {
     document.querySelectorAll('.section').forEach(function(s) { s.classList.remove('active'); });
     document.getElementById(id + '-section').classList.add('active');
     document.querySelectorAll('.nav-item').forEach(function(i) { i.classList.remove('active'); });
     element.classList.add('active');
+    // Logica secțiuni speciale
     if (id === 'audit') renderAuditLog();
+    if (id === 'map') {
+        if (!_ceoMapLoaded) {
+            _ceoMapLoaded = true;
+            setTimeout(function() { loadMissionMap(); }, 150);
+        } else {
+            setTimeout(function() { if (ceoMap) ceoMap.invalidateSize(); }, 150);
+        }
+    }
 }
 
 function initDashboard() {
@@ -765,15 +776,171 @@ function loadMissionMap() {
 }
 
 // Inițializăm harta când se deschide tab-ul Map
-var ceoMapLoaded = false;
-var origSwitchSection = switchSection;
-function switchSection(id, element) {
-    origSwitchSection(id, element);
-    if (id === 'map' && !ceoMapLoaded) {
-        ceoMapLoaded = true;
-        setTimeout(function() { loadMissionMap(); }, 150);
-    } else if (id === 'map') {
-        setTimeout(function() { if (ceoMap) ceoMap.invalidateSize(); }, 150);
+// switchSection map logic moved to main definition above
+
+
+// ================================================================
+// SYSTEM CONTROL — Remote Config & Live Push Update
+// ================================================================
+var _maintenanceActive = false;
+
+function loadSysControl() {
+    // Listener live pe documentul app_config
+    db.collection('system').doc('app_config').onSnapshot(function(doc) {
+        if (!doc.exists) {
+            // Creăm documentul dacă nu există
+            db.collection('system').doc('app_config').set({
+                version: '1.0.0',
+                forceUpdate: false,
+                maintenanceMode: false,
+                updateMessage: '',
+                updateType: 'soft',
+                lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+            }).catch(function() {});
+            return;
+        }
+
+        var cfg = doc.data();
+        _maintenanceActive = cfg.maintenanceMode || false;
+
+        // Update UI
+        var vEl = document.getElementById('sysctl-current-version');
+        if (vEl) vEl.textContent = cfg.version || '1.0.0';
+
+        var dEl = document.getElementById('sysctl-version-date');
+        if (dEl && cfg.lastUpdated) {
+            dEl.textContent = 'Ultima actualizare: ' + cfg.lastUpdated.toDate().toLocaleString('ro-RO', {
+                day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'
+            });
+        }
+
+        // Maintenance toggle UI
+        updateMaintenanceUI(_maintenanceActive);
+
+        // Pre-completează versiunea nouă cu +0.0.1 față de cea curentă
+        var vInput = document.getElementById('sysctl-new-version');
+        if (vInput && !vInput.value && cfg.version) {
+            var parts = cfg.version.split('.');
+            if (parts.length === 3) {
+                parts[2] = String(parseInt(parts[2] || 0) + 1);
+                vInput.value = parts.join('.');
+            }
+        }
+    });
+
+    // Încărcăm istoricul push-urilor
+    loadUpdateHistory();
+}
+
+function updateMaintenanceUI(active) {
+    var label = document.getElementById('sysctl-maintenance-label');
+    var toggle = document.getElementById('sysctl-maintenance-toggle');
+    var knob = document.getElementById('sysctl-maintenance-knob');
+    if (label) label.textContent = active ? 'ACTIV' : 'INACTIV';
+    if (label) label.style.color = active ? '#ff9500' : 'rgba(255,255,255,0.6)';
+    if (toggle) {
+        toggle.style.background = active ? 'rgba(255,149,0,0.3)' : 'rgba(255,255,255,0.1)';
+        toggle.style.borderColor = active ? 'rgba(255,149,0,0.4)' : 'rgba(255,255,255,0.1)';
     }
-    if (id === 'audit') renderAuditLog();
+    if (knob) {
+        knob.style.left = active ? '27px' : '3px';
+        knob.style.background = active ? '#ff9500' : 'rgba(255,255,255,0.4)';
+        knob.style.boxShadow = active ? '0 0 8px rgba(255,149,0,0.6)' : 'none';
+    }
+}
+
+async function toggleMaintenance() {
+    var newState = !_maintenanceActive;
+    var confirm_msg = newState
+        ? 'Activezi MAINTENANCE MODE?\nToți Insiderii vor vedea ecranul de mentenanță.'
+        : 'Dezactivezi maintenance mode?\nInsiderii pot accesa din nou aplicația.';
+    if (!confirm(confirm_msg)) return;
+
+    try {
+        await db.collection('system').doc('app_config').update({
+            maintenanceMode: newState,
+            lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        _maintenanceActive = newState;
+        addAuditEntry((newState ? '🔧 MAINTENANCE MODE activat' : '✅ Maintenance mode dezactivat'));
+        showCEOToast(newState ? '🔧 Maintenance Mode ACTIV' : '✅ Maintenance dezactivat', newState ? 'gold' : 'green');
+    } catch(e) {
+        showCEOToast('Eroare: ' + e.message, 'red');
+    }
+}
+
+async function pushLiveUpdate() {
+    var msg     = document.getElementById('sysctl-update-msg').value.trim();
+    var version = document.getElementById('sysctl-new-version').value.trim();
+    var type    = document.getElementById('sysctl-update-type').value;
+
+    if (!msg)     { showCEOToast('Scrie un mesaj de actualizare.', 'red'); return; }
+    if (!version) { showCEOToast('Specifică versiunea nouă.', 'red'); return; }
+
+    var typeLabels = { soft:'Soft (Toast)', force:'Force (Blocare)', silent:'Silent (Auto-reload)' };
+
+    if (!confirm('Emiti actualizarea ' + version + ' (' + typeLabels[type] + ') către toți Insiderii?')) return;
+
+    var btn = document.querySelector('[onclick="pushLiveUpdate()"]');
+    if (btn) { btn.style.opacity = '0.5'; btn.style.pointerEvents = 'none'; }
+
+    try {
+        await db.collection('system').doc('app_config').update({
+            version:       version,
+            forceUpdate:   (type === 'force'),
+            silentUpdate:  (type === 'silent'),
+            updateMessage: msg,
+            updateType:    type,
+            lastUpdated:   firebase.firestore.FieldValue.serverTimestamp(),
+            pushedAt:      firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        // Salvăm în istoricul actualizărilor
+        await db.collection('system').doc('app_config').collection('update_history').add({
+            version:   version,
+            message:   msg,
+            type:      type,
+            pushedBy:  'CEO',
+            pushedAt:  firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        addAuditEntry('🚀 Push Update v' + version + ' (' + typeLabels[type] + '): ' + msg);
+        showCEOToast('🚀 Update v' + version + ' emis! Insiderii sunt notificați.', 'blue');
+
+        // Reset form
+        document.getElementById('sysctl-update-msg').value = '';
+
+    } catch(e) {
+        showCEOToast('Eroare push: ' + e.message, 'red');
+    } finally {
+        if (btn) { btn.style.opacity = '1'; btn.style.pointerEvents = 'auto'; }
+    }
+}
+
+function loadUpdateHistory() {
+    db.collection('system').doc('app_config').collection('update_history')
+        .orderBy('pushedAt', 'desc').limit(5)
+        .onSnapshot(function(snap) {
+            var container = document.getElementById('sysctl-update-history');
+            if (!container) return;
+            container.innerHTML = '';
+            if (snap.empty) {
+                container.innerHTML = '<div style="color:var(--text-muted);font-size:12px;">Nicio actualizare emisă încă.</div>';
+                return;
+            }
+            var typeIcons = { soft:'🔔', force:'🔴', silent:'🔇' };
+            snap.forEach(function(doc) {
+                var d = doc.data();
+                var date = d.pushedAt ? d.pushedAt.toDate().toLocaleString('ro-RO',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '—';
+                container.innerHTML += '<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.04);">'
+                    + '<span style="font-size:18px;flex-shrink:0;">' + (typeIcons[d.type] || '📦') + '</span>'
+                    + '<div style="flex:1;min-width:0;">'
+                    + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">'
+                    + '<span style="font-size:12px;font-weight:800;color:#fff;font-family:monospace;">v' + (d.version||'—') + '</span>'
+                    + '<span style="font-size:10px;color:rgba(255,255,255,0.25);">' + date + '</span>'
+                    + '</div>'
+                    + '<div style="font-size:12px;color:rgba(255,255,255,0.5);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (d.message||'—') + '</div>'
+                    + '</div></div>';
+            });
+        });
 }
