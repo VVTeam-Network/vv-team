@@ -2,9 +2,8 @@
 <html lang="ro">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>VV TEAM | Central Command</title>
-
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
@@ -13,44 +12,21 @@
 </head>
 <body>
 
-    <div id="lightbox">
+    <div id="lightbox" onclick="closeLightbox()">
         <div class="lb-close" onclick="closeLightbox()"><i class="fas fa-times"></i></div>
         <div class="lb-nav lb-prev" onclick="lbPrev(event)"><i class="fas fa-chevron-left"></i></div>
         <img id="lb-img" src="" onclick="event.stopPropagation()">
         <div class="lb-nav lb-next" onclick="lbNext(event)"><i class="fas fa-chevron-right"></i></div>
     </div>
 
-    <!-- LOGIN SCREEN — Premium Email & Parolă -->
+    <!-- LOGIN SCREEN -->
     <div id="login-screen">
         <div class="logo-box">VV TEAM</div>
         <div class="logo-sub">Central Command</div>
-
-        <input type="email" id="ceo-email"
-            class="login-input"
-            placeholder="EMAIL CEO"
-            autocomplete="email"
-            style="margin-bottom:12px;">
-
-        <input type="password" id="ceo-pass"
-            class="login-input"
-            placeholder="PAROLĂ"
-            autocomplete="current-password"
-            style="margin-bottom:8px;">
-
-        <div id="login-error" style="
-            display:none;
-            color:#ff3b30;
-            font-size:12px;
-            margin-bottom:16px;
-            text-align:center;
-            letter-spacing:0.5px;
-            width:100%;
-            max-width:320px;
-        "></div>
-
-        <button id="login-btn" class="login-btn" onclick="checkLogin()">
-            INTRĂ ÎN SISTEM
-        </button>
+        <input type="email" id="ceo-email" class="login-input" placeholder="EMAIL CEO" autocomplete="email" style="margin-bottom:12px;">
+        <input type="password" id="ceo-pass" class="login-input" placeholder="PAROLĂ" autocomplete="current-password" style="margin-bottom:8px;">
+        <div id="login-error" style="display:none;color:#ff3b30;font-size:12px;margin-bottom:16px;text-align:center;letter-spacing:0.5px;width:100%;max-width:320px;"></div>
+        <button id="login-btn" class="login-btn" onclick="checkLogin()">INTRĂ ÎN SISTEM</button>
     </div>
 
     <!-- SIDEBAR -->
@@ -66,38 +42,42 @@
         </div>
 
         <div class="nav-item active" onclick="switchSection('feed', this)">
-            <i class="fas fa-stream"></i> Global Intel Feed
+            <i class="fas fa-stream"></i> <span>Global Intel Feed</span>
         </div>
         <div class="nav-item" onclick="switchSection('disputes', this)">
-            <i class="fas fa-gavel"></i> Dispute Escrow
+            <i class="fas fa-gavel"></i> <span>Dispute Escrow</span>
             <span class="nav-badge" id="dispute-badge">0</span>
         </div>
         <div class="nav-item" onclick="switchSection('feedback', this)">
-            <i class="fas fa-inbox"></i> Feedback & Suport
+            <i class="fas fa-inbox"></i> <span>Feedback & Suport</span>
         </div>
         <div class="nav-item" onclick="switchSection('leaderboard', this)">
-            <i class="fas fa-trophy"></i> Rețea & VV Onyx
+            <i class="fas fa-trophy"></i> <span>Rețea & VV Onyx</span>
         </div>
         <div class="nav-item" onclick="switchSection('keys', this)">
-            <i class="fas fa-key"></i> Chei Acces Beta
+            <i class="fas fa-key"></i> <span>Chei Acces Beta</span>
         </div>
         <div class="nav-item" onclick="switchSection('talent', this)">
-            <i class="fas fa-user-astronaut"></i> Talent Pool
+            <i class="fas fa-user-astronaut"></i> <span>Talent Pool</span>
+        </div>
+        <div class="nav-item" onclick="switchSection('audit', this)">
+            <i class="fas fa-clipboard-list"></i> <span>Audit Log</span>
         </div>
         <div style="margin-top:auto;"></div>
-        <div class="nav-item" onclick="logoutCEO()">
-            <i class="fas fa-sign-out-alt"></i> Deconectare
+        <div class="nav-item logout-btn" onclick="secureLogoutCEO()">
+            <i class="fas fa-lock"></i> <span>LOGOUT SECURIZAT</span>
         </div>
     </div>
 
     <!-- MAIN CONTENT -->
     <div class="main-content">
 
+        <!-- FEED -->
         <div id="feed-section" class="section active">
             <div class="section-header-row">
                 <div>
                     <div class="section-title">Global Intel Feed</div>
-                    <div class="section-desc">Toate fotografiile și rapoartele valide trimise de Insideri în timp real.</div>
+                    <div class="section-desc">Dovezi trimise de Insideri în ultimele 24h.</div>
                 </div>
                 <button class="btn-delete-all" onclick="deleteAllBetaData()">
                     <i class="fas fa-trash-alt"></i> DELETE ALL
@@ -108,6 +88,7 @@
             </div>
         </div>
 
+        <!-- DISPUTE -->
         <div id="disputes-section" class="section">
             <div class="section-header-row">
                 <div>
@@ -120,6 +101,7 @@
             </div>
         </div>
 
+        <!-- FEEDBACK -->
         <div id="feedback-section" class="section">
             <div class="section-header-row">
                 <div>
@@ -129,31 +111,33 @@
             </div>
             <table class="vv-table">
                 <thead>
-                    <tr><th>Insider / Client</th><th>Mesaj</th><th>Status</th><th>Acțiune</th></tr>
+                    <tr><th>Insider</th><th>Mesaj</th><th>Status</th><th>Acțiune</th></tr>
                 </thead>
                 <tbody id="feedback-body">
-                    <tr><td colspan="4" style="text-align:center; color:var(--text-muted);">Niciun mesaj nou.</td></tr>
+                    <tr><td colspan="4" style="text-align:center;color:var(--text-muted);">Niciun mesaj nou.</td></tr>
                 </tbody>
             </table>
         </div>
 
+        <!-- LEADERBOARD — click pe row deschide profil detaliat -->
         <div id="leaderboard-section" class="section">
             <div class="section-header-row">
                 <div>
                     <div class="section-title">Rețea Insideri & VV Onyx</div>
-                    <div class="section-desc">Clasamentul Insiderilor după balanța VV.</div>
+                    <div class="section-desc">Click pe un Insider pentru profil detaliat, control balanță și acțiuni.</div>
                 </div>
             </div>
             <table class="vv-table">
                 <thead>
-                    <tr><th>Rank</th><th>Alias</th><th>Balanță VV</th><th>Status</th></tr>
+                    <tr><th>Rank</th><th>Alias</th><th>Balanță VV</th><th>Status & Stele</th></tr>
                 </thead>
                 <tbody id="leaderboard-body">
-                    <tr><td colspan="4" style="text-align:center; color:var(--text-muted);">Se sincronizează...</td></tr>
+                    <tr><td colspan="4" style="text-align:center;color:var(--text-muted);">Se sincronizează...</td></tr>
                 </tbody>
             </table>
         </div>
 
+        <!-- KEYS -->
         <div id="keys-section" class="section">
             <div class="section-header-row">
                 <div>
@@ -162,9 +146,7 @@
                 </div>
             </div>
             <div class="key-generator-card">
-                <!-- Dashboard stats -->
                 <div id="keys-dashboard"></div>
-                
                 <button class="btn-primary" onclick="generateKey()" style="margin-bottom:20px;">
                     <i class="fas fa-plus"></i> Generează Cheie Nouă
                 </button>
@@ -172,18 +154,38 @@
             </div>
         </div>
 
-    </div>
-
+        <!-- TALENT POOL -->
         <div id="talent-section" class="section">
             <div class="section-header-row">
                 <div>
                     <div class="section-title">Talent Pool</div>
-                    <div class="section-desc">Aplicații primite de la developeri și arhitecți care vor să construiască VV.</div>
+                    <div class="section-desc">Aplicații primite de la developeri care vor să construiască VV.</div>
                 </div>
             </div>
-            <div id="talent-container" style="display:flex; flex-direction:column; gap:12px;">
+            <div id="talent-container" style="display:flex;flex-direction:column;gap:12px;">
                 <div style="color:var(--text-muted);">Se încarcă aplicațiile...</div>
             </div>
+        </div>
+
+        <!-- AUDIT LOG — NOU -->
+        <div id="audit-section" class="section">
+            <div class="section-header-row">
+                <div>
+                    <div class="section-title">Audit Log</div>
+                    <div class="section-desc">Toate acțiunile CEO — transparență și auditabilitate completă.</div>
+                </div>
+                <button class="btn-delete-all" onclick="clearAuditLog()">
+                    <i class="fas fa-eraser"></i> CURĂȚĂ LOG
+                </button>
+            </div>
+            <table class="vv-table">
+                <thead>
+                    <tr><th style="width:160px;">Timestamp</th><th>Acțiune</th></tr>
+                </thead>
+                <tbody id="audit-log-body">
+                    <tr><td colspan="2" style="text-align:center;color:var(--text-muted);padding:20px;">Nicio acțiune înregistrată.</td></tr>
+                </tbody>
+            </table>
         </div>
 
     </div>
