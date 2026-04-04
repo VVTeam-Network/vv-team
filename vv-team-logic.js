@@ -191,6 +191,47 @@ function initDashboard() {
     loadFeedback();
     loadKeys();
     loadTalentPool();
+    // Auto-cleanup la fiecare login CEO
+    setTimeout(function() { runGarbageCollector(); }, 2000);
+}
+
+// ================= GARBAGE COLLECTOR — 5 ZILE TTL =================
+// Rulează la fiecare login CEO. Șterge automat pozele > 120h (5 zile).
+// Respectă GDPR: "conținutul se autodistruge după validare" (T&C pct.5)
+async function runGarbageCollector() {
+    var TTL_MS = 5 * 24 * 60 * 60 * 1000; // 120 ore în ms
+    var cutoff = Date.now() - TTL_MS;
+    var deleted = 0;
+
+    try {
+        // Caută poze mai vechi de 5 zile
+        var snap = await db.collection('photos')
+            .where('timestamp', '<', cutoff)
+            .limit(50)  // batch de max 50 per run
+            .get();
+
+        if (snap.empty) {
+            console.log('[VV GC] Feed curat. Nicio poză expirat.');
+            return;
+        }
+
+        var batch = db.batch();
+        snap.forEach(function(doc) {
+            batch.delete(doc.ref);
+            deleted++;
+        });
+        await batch.commit();
+
+        addAuditEntry('🗑️ GC Auto-cleanup: ' + deleted + ' poze eliminate (>5 zile)');
+        console.log('[VV GC] Șters ' + deleted + ' înregistrări expirate.');
+
+        // Dacă mai sunt, programăm un alt run în 5 minute
+        if (snap.size === 50) {
+            setTimeout(function() { runGarbageCollector(); }, 5 * 60 * 1000);
+        }
+    } catch(e) {
+        console.log('[VV GC] Eroare:', e.message);
+    }
 }
 
 // ================= 1. GLOBAL FEED 24H =================
@@ -369,29 +410,119 @@ async function deleteAllBetaData() {
     } catch(e) { showCEOToast('Eroare: ' + e.message, 'red'); }
 }
 
-// ================= TALENT POOL =================
+// ================= TALENT POOL — mini-CRM =================
+var TALENT_STATUS = {
+    new:       { label:'NEW',       color:'rgba(255,255,255,0.4)', bg:'rgba(255,255,255,0.06)', border:'rgba(255,255,255,0.12)' },
+    contacted: { label:'CONTACTED', color:'#0A84FF',               bg:'rgba(10,132,255,0.08)', border:'rgba(10,132,255,0.25)' },
+    hired:     { label:'HIRED ✓',   color:'#34c759',               bg:'rgba(52,199,89,0.08)',  border:'rgba(52,199,89,0.25)' },
+    rejected:  { label:'REJECTED',  color:'#ff3b30',               bg:'rgba(255,59,48,0.06)', border:'rgba(255,59,48,0.2)' }
+};
+
 function loadTalentPool() {
     db.collection('talent_pool').orderBy('createdAt','desc').onSnapshot(function(snap) {
         var container = document.getElementById('talent-container');
         if (!container) return;
         container.innerHTML = '';
-        if (snap.empty) { container.innerHTML='<div style="color:var(--text-muted);">Nicio aplicație încă.</div>'; return; }
+        if (snap.empty) {
+            container.innerHTML = '<div style="color:var(--text-muted);padding:20px;">Nicio aplicație încă.</div>';
+            return;
+        }
         snap.forEach(function(doc) {
             var d = doc.data();
-            var date = d.createdAt?.toDate().toLocaleString('ro-RO') || '—';
-            var safeAlias = (d.alias||'').replace(/'/g,"\\'");
-            container.innerHTML += '<div style="background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:8px;"><div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:14px;font-weight:800;color:#fff;">' + (d.alias||'INSIDER') + '</span><span style="font-size:10px;color:var(--text-muted);">' + date + '</span></div><div style="font-size:13px;color:rgba(255,255,255,0.7);"><strong style="color:rgba(255,255,255,0.5);">Skills:</strong> ' + d.skill + '</div>' + (d.portfolio && d.portfolio!=='N/A' ? '<a href="' + d.portfolio + '" target="_blank" style="font-size:12px;color:var(--vv-blue);text-decoration:none;font-weight:600;"><i class="fas fa-link"></i> ' + d.portfolio + '</a>' : '') + '<div style="display:flex;gap:8px;margin-top:4px;"><button onclick="updateTalentStatus(\'' + doc.id + '\',\'contacted\',\'' + safeAlias + '\')" style="flex:1;padding:12px;border:none;border-radius:10px;background:rgba(10,132,255,0.15);color:#0A84FF;border:1px solid rgba(10,132,255,0.3);font-weight:700;font-size:11px;cursor:pointer;min-height:44px;">CONTACTEAZĂ</button><button onclick="updateTalentStatus(\'' + doc.id + '\',\'rejected\',\'' + safeAlias + '\')" style="flex:1;padding:12px;border:none;border-radius:10px;background:rgba(255,59,48,0.1);color:#ff3b30;border:1px solid rgba(255,59,48,0.25);font-weight:700;font-size:11px;cursor:pointer;min-height:44px;">RESPINGE</button></div></div>';
+            var date = d.createdAt ? d.createdAt.toDate().toLocaleString('ro-RO',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '—';
+            var status = d.status || 'new';
+            var st = TALENT_STATUS[status] || TALENT_STATUS.new;
+
+            var card = document.createElement('div');
+            card.style.cssText = 'background:var(--glass-bg);border:1px solid ' + st.border + ';border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:10px;transition:border-color 0.3s;';
+
+            // Header
+            var header = document.createElement('div');
+            header.style.cssText = 'display:flex;justify-content:space-between;align-items:flex-start;gap:8px;';
+            header.innerHTML = '<span style="font-size:15px;font-weight:900;color:#fff;">' + (d.alias||'INSIDER') + '</span>'
+                + '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">'
+                + '<span style="font-size:9px;color:' + st.color + ';background:' + st.bg + ';border:1px solid ' + st.border + ';padding:4px 10px;border-radius:8px;font-weight:800;letter-spacing:1px;">' + st.label + '</span>'
+                + '<span style="font-size:10px;color:var(--text-muted);">' + date + '</span></div>';
+            card.appendChild(header);
+
+            // Skills
+            var skills = document.createElement('div');
+            skills.style.cssText = 'font-size:13px;color:rgba(255,255,255,0.65);';
+            skills.innerHTML = '<strong style="color:rgba(255,255,255,0.4);">Skills:</strong> ' + (d.skill||'—');
+            card.appendChild(skills);
+
+            // Portfolio
+            if (d.portfolio && d.portfolio !== 'N/A') {
+                var plink = document.createElement('a');
+                plink.href = d.portfolio;
+                plink.target = '_blank';
+                plink.style.cssText = 'font-size:12px;color:var(--vv-blue);text-decoration:none;font-weight:600;';
+                plink.textContent = '🔗 ' + d.portfolio;
+                card.appendChild(plink);
+            }
+
+            // Notes box
+            var notesBox = document.createElement('div');
+            notesBox.style.cssText = 'background:rgba(212,175,55,0.04);border:1px solid rgba(212,175,55,0.12);border-radius:12px;padding:12px;';
+            notesBox.innerHTML = '<div style="font-size:9px;color:rgba(212,175,55,0.5);letter-spacing:2px;font-weight:700;margin-bottom:6px;">🔒 NOTE INTERNE CEO</div>';
+
+            var textarea = document.createElement('textarea');
+            textarea.id = 'notes-' + doc.id;
+            textarea.placeholder = 'Ex: I-am scris pe Insta, pare bun pe design...';
+            textarea.style.cssText = 'width:100%;background:transparent;border:none;color:rgba(255,255,255,0.7);font-size:12px;font-family:-apple-system,sans-serif;outline:none;resize:none;min-height:56px;line-height:1.5;';
+            textarea.value = d.internalNotes || '';
+            textarea.setAttribute('data-docid', doc.id);
+            textarea.addEventListener('blur', function() {
+                saveTalentNote(this.getAttribute('data-docid'), this.value);
+            });
+            notesBox.appendChild(textarea);
+            card.appendChild(notesBox);
+
+            // Status buttons grid
+            var btnGrid = document.createElement('div');
+            btnGrid.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:6px;';
+            var docId = doc.id;
+            var safeAlias = d.alias || 'INSIDER';
+
+            function makeStatusBtn(lbl, targetStatus, color, bg, border) {
+                var btn = document.createElement('button');
+                btn.textContent = lbl;
+                btn.style.cssText = 'padding:11px;border:none;border-radius:10px;background:' + bg + ';color:' + color + ';border:1px solid ' + border + ';font-weight:700;font-size:11px;cursor:pointer;min-height:44px;font-family:-apple-system,sans-serif;';
+                btn.addEventListener('click', function() { setTalentStatus(docId, targetStatus, safeAlias); });
+                return btn;
+            }
+
+            if (status !== 'contacted') btnGrid.appendChild(makeStatusBtn('📞 CONTACTAT','contacted','#0A84FF','rgba(10,132,255,0.12)','rgba(10,132,255,0.25)'));
+            else btnGrid.appendChild(document.createElement('div'));
+            if (status !== 'hired') btnGrid.appendChild(makeStatusBtn('✅ ANGAJAT','hired','#34c759','rgba(52,199,89,0.1)','rgba(52,199,89,0.2)'));
+            else btnGrid.appendChild(document.createElement('div'));
+            if (status !== 'new') btnGrid.appendChild(makeStatusBtn('↺ RESET','new','rgba(255,255,255,0.4)','rgba(255,255,255,0.05)','rgba(255,255,255,0.1)'));
+            else btnGrid.appendChild(document.createElement('div'));
+            if (status !== 'rejected') btnGrid.appendChild(makeStatusBtn('✕ RESPINS','rejected','#ff3b30','rgba(255,59,48,0.08)','rgba(255,59,48,0.18)'));
+            else btnGrid.appendChild(document.createElement('div'));
+
+            card.appendChild(btnGrid);
+            container.appendChild(card);
         });
     });
 }
 
-async function updateTalentStatus(docId, status, alias) {
+
+async function saveTalentNote(docId, noteText) {
+    try { await db.collection('talent_pool').doc(docId).update({ internalNotes: noteText }); }
+    catch(e) { console.log('Nota nesalvata:', e.message); }
+}
+
+async function setTalentStatus(docId, status, alias) {
     try {
-        await db.collection('talent_pool').doc(docId).update({ status:status });
-        addAuditEntry('👤 Talent: ' + alias + ' → ' + (status==='contacted'?'CONTACTAT':'RESPINS'));
-        showCEOToast(status==='contacted'?'✅ Marcat Contactat!':'❌ Respins.', status==='contacted'?'green':'red');
+        await db.collection('talent_pool').doc(docId).update({ status: status });
+        var labels = { new:'NEW', contacted:'CONTACTAT', hired:'ANGAJAT', rejected:'RESPINS' };
+        addAuditEntry('👤 Talent ' + alias + ' → ' + (labels[status]||status));
+        showCEOToast('Talent: ' + alias + ' → ' + (labels[status]||status), status==='hired'?'green':status==='rejected'?'red':'blue');
     } catch(e) { showCEOToast('Eroare: ' + e.message, 'red'); }
 }
+async function updateTalentStatus(docId, status, alias) { await setTalentStatus(docId, status, alias); }
+
 
 // ================= 5. CHEI =================
 function loadKeys() {
