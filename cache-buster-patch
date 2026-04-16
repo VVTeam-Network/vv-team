@@ -1,0 +1,4 @@
+<!-- Forțăm browserul să ignore cache-ul cu ?v=timestamp -->
+<script>
+    document.write('<script src="vv-team-logic.js?v=' + new Date().getTime() + '"><\/script>');
+</script>
