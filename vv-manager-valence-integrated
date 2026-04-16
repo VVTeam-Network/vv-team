@@ -1,0 +1,20 @@
+async function sendCommand(type, payload) {
+    // Validare locală înainte de push
+    if (!firebase.auth().currentUser) {
+        showCEOToast("Eroare: Autentificare necesară.");
+        return;
+    }
+    
+    try {
+        await db.collection('commands').add({
+            type: type,
+            payload: payload,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+            status: 'pending',
+            sender: firebase.auth().currentUser.uid
+        });
+        VVhi.logApproval("Comandă trimisă cu succes: " + type);
+    } catch (e) {
+        VVhi.logRejection("Eroare trimitere comandă: " + e.message);
+    }
+}
