@@ -478,22 +478,12 @@ button, .nav-item, .btn-approve, .btn-reject, .btn-reply, .btn-primary, .login-b
 .ceo-popup .leaflet-popup-content { margin: 0 !important; }
 .ceo-popup .leaflet-popup-tip { background: #0a0a0c !important; }
 .ceo-popup .leaflet-popup-close-button { color: rgba(255,255,255,0.4) !important; }
-    /* SCAN LINE */
-    .scan-line {
-      position: fixed; top: 0; left: 0;
-      width: 100%; height: 2px;
-      background: var(--gold);
-      box-shadow: 0 0 15px var(--gold);
-      animation: scan 4s linear infinite;
-      z-index: 200; opacity: 0.4;
-      pointer-events: none;
-    }
-    @keyframes scan { from { top: 0; } to { top: 100%; } }
+
   </style>
 </head>
 <body>
 
-  <div class="scan-line"></div>
+
 
   <div id="login-screen" style="display:flex">
     <div class="logo-box">VV</div>
