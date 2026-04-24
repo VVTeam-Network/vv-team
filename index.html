@@ -560,12 +560,6 @@ auth.onAuthStateChanged(async (user) => {
     await auth.signOut();
     if (loginEl) loginEl.style.display = 'flex';
   }
-}); } else { window.location.href = 'index.html'; }
-    }
-  } catch (e) {
-    console.error('Auth check error:', e);
-    if (document.getElementById('login-screen')) { auth.signOut().then(() => { document.getElementById('login-screen').style.display = 'flex'; }); } else { window.location.href = 'index.html'; }
-  }
 });
 
 function showLoginError(msg) {
