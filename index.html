@@ -106,6 +106,7 @@ body {
     transition: 0.2s; 
 }
 .login-btn:active { transform: scale(0.98); }
+.login-error { color: #ff3b30; font-size: 13px; text-align: center; margin-top: 10px; min-height: 20px; font-weight: 600; }
 
 /* ============ LIGHTBOX ============ */
 #lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 100000; justify-content: center; align-items: center; backdrop-filter: blur(10px); }
@@ -506,6 +507,7 @@ button, .nav-item, .btn-approve, .btn-reject, .btn-reply, .btn-primary, .login-b
       onclick="handleLogin(document.getElementById('login-email').value, document.getElementById('login-pass').value)">
       INTRĂ
     </button>
+    <div class="login-error" id="login-error"></div>
   </div>
 
   <div id="app-container"></div>
@@ -538,28 +540,27 @@ let lightboxIndex = 0;
 
 firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(console.error);
 
+// CEO EMAIL - doar tu intri
+const CEO_EMAIL = 'vv.ep.team@gmail.com';
+
 auth.onAuthStateChanged(async (user) => {
   const loginEl = document.getElementById('login-screen');
-  if (!user) {
+  if (!user || user.isAnonymous) {
+    if (user && user.isAnonymous) await auth.signOut();
     if (loginEl) loginEl.style.display = 'flex';
     return;
   }
-  // Utilizator anonim din hub - delogam, afisam login
-  if (user.isAnonymous) {
+  // Verificare simpla - doar emailul tau
+  if (user.email === CEO_EMAIL) {
+    console.log("CEO autorizat.");
+    if (loginEl) loginEl.style.display = 'none';
+    buildInterface();
+    initDashboard();
+  } else {
     await auth.signOut();
     if (loginEl) loginEl.style.display = 'flex';
-    return;
   }
-  try {
-    const userDoc = await db.collection('users').doc(user.uid).get();
-    if (userDoc.exists && userDoc.data().role === 'ceo') {
-      currentCEO = { uid: user.uid, ...userDoc.data() };
-      console.log('VV CEO Panel: Acces autorizat.');
-      buildInterface();
-      initDashboard();
-    } else {
-      console.warn('Rol insuficient.');
-      if (document.getElementById('login-screen')) { auth.signOut().then(() => { document.getElementById('login-screen').style.display = 'flex'; }); } else { window.location.href = 'index.html'; }
+}); } else { window.location.href = 'index.html'; }
     }
   } catch (e) {
     console.error('Auth check error:', e);
@@ -567,13 +568,29 @@ auth.onAuthStateChanged(async (user) => {
   }
 });
 
+function showLoginError(msg) {
+  const el = document.getElementById('login-error');
+  if (el) { el.textContent = msg; setTimeout(() => el.textContent = '', 4000); }
+}
+
 async function handleLogin(email, password) {
+  if (!email || !password) {
+    showLoginError('Completează emailul și parola!');
+    return;
+  }
+  const btn = document.querySelector('.login-btn');
+  if (btn) btn.textContent = 'SE VERIFICĂ...';
   try {
     await auth.signInWithEmailAndPassword(email, password);
   } catch (error) {
     console.error('Login error:', error.message);
-    const btn = document.querySelector('.login-btn');
-    if (btn) { btn.textContent = 'ACCES REFUZAT'; setTimeout(() => btn.textContent = 'INTRĂ', 2000); }
+    let msg = 'Eroare. Încearcă din nou.';
+    if (error.code === 'auth/wrong-password') msg = 'Parolă greșită!';
+    if (error.code === 'auth/user-not-found') msg = 'Email negăsit!';
+    if (error.code === 'auth/invalid-email') msg = 'Email invalid!';
+    if (error.code === 'auth/too-many-requests') msg = 'Prea multe încercări. Așteaptă.';
+    showLoginError(msg);
+    if (btn) btn.textContent = 'INTRĂ';
   }
 }
 
