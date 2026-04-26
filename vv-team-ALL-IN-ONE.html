@@ -632,6 +632,7 @@ function buildInterface() {
       <div class="nav-item" onclick="showSection('map')" id="nav-map">
         <i>🗺</i> <span>Harta Misiuni</span>
       </div>
+      <div class="nav-item" onclick="showSection('vvhi')" id="nav-vvhi">
       <div class="nav-item" onclick="showSection('circle')" id="nav-circle">
         <i>⬡</i> <span>Inner Circle <span class="nav-badge" id="badge-circle" style="display:none;background:#D4AF37;color:#000;border-radius:10px;padding:1px 6px;font-size:9px;font-weight:800;margin-left:4px">0</span></span>
       </div>
@@ -1545,7 +1546,6 @@ function loadCirclePending() {
   if(!list) return;
   list.innerHTML = '<div style="text-align:center;padding:20px;color:rgba(255,255,255,0.3);font-size:13px">Se încarcă...</div>';
   db.collection('contributors').where('status','==','pending')
-    .orderBy('submittedAt','desc')
     .onSnapshot(function(snap) {
       var badge = document.getElementById('badge-circle');
       if(badge) { badge.textContent = snap.size; badge.style.display = snap.size > 0 ? 'inline' : 'none'; }
@@ -1586,7 +1586,6 @@ function loadCircleActive() {
   var list = document.getElementById('circle-active-list');
   if(!list) return;
   db.collection('contributors').where('status','==','active')
-    .orderBy('activatedAt','desc')
     .onSnapshot(function(snap) {
       var stats = document.getElementById('circle-stats');
       if(stats) stats.textContent = snap.size + ' activi / 100';
