@@ -819,7 +819,31 @@ function buildInterface() {
         </table>
       </div>
 
-    </div><!-- end main-content -->
+    
+      <!-- INNER CIRCLE SECTION -->
+      <div class="section" id="section-circle">
+        <div class="section-header-row">
+          <div>
+            <div class="section-title">⬡ Inner Circle</div>
+            <div class="section-desc">Gestionează contribuitorii VV. Verifică plata în Salt Bank înainte de deploy.</div>
+          </div>
+          <div id="circle-stats" style="font-size:13px;color:rgba(255,255,255,0.4)">Se încarcă...</div>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-bottom:20px;background:rgba(255,255,255,0.04);border-radius:12px;padding:4px">
+          <button id="circle-tab-pending" onclick="switchCircleTab('pending')" style="flex:1;padding:10px;border:none;border-radius:9px;background:#fff;color:#000;font-weight:800;font-size:12px;cursor:pointer;min-height:44px;font-family:inherit">⏳ PENDING</button>
+          <button id="circle-tab-active" onclick="switchCircleTab('active')" style="flex:1;padding:10px;border:none;border-radius:9px;background:transparent;color:rgba(255,255,255,0.4);font-weight:800;font-size:12px;cursor:pointer;min-height:44px;font-family:inherit">✅ ACTIVI</button>
+        </div>
+
+        <div id="circle-pending-list">
+          <div style="text-align:center;padding:30px;color:rgba(255,255,255,0.3);font-size:13px">Se încarcă...</div>
+        </div>
+        <div id="circle-active-list" style="display:none">
+          <div style="text-align:center;padding:30px;color:rgba(255,255,255,0.3);font-size:13px">Se încarcă...</div>
+        </div>
+      </div>
+
+</div><!-- end main-content -->
 
     <!-- LIGHTBOX -->
     <div id="lightbox" onclick="closeLightbox()">
