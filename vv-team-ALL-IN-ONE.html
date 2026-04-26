@@ -633,7 +633,7 @@ function buildInterface() {
         <i>🗺</i> <span>Harta Misiuni</span>
       </div>
       <div class="nav-item" onclick="showSection('circle')" id="nav-circle">
-        <i>💸</i> <span>Inner Circle <span class="nav-badge" id="badge-circle" style="display:none;background:#D4AF37;color:#000;border-radius:10px;padding:1px 6px;font-size:9px;font-weight:800;margin-left:4px">0</span></span>
+        <i>⬡</i> <span>Inner Circle <span class="nav-badge" id="badge-circle" style="display:none;background:#D4AF37;color:#000;border-radius:10px;padding:1px 6px;font-size:9px;font-weight:800;margin-left:4px">0</span></span>
       </div>
       <div class="nav-item" onclick="showSection('vvhi')" id="nav-vvhi">
         <i>🤖</i> <span>VVhi Shadow</span>
@@ -1540,11 +1540,13 @@ function generateVVCoreId() {
   return 'VV·CORE·' + p1 + '-' + p2;
 }
 
+var _circlePendingUnsub = null;
 function loadCirclePending() {
   var list = document.getElementById('circle-pending-list');
   if(!list) return;
+  if(_circlePendingUnsub) { _circlePendingUnsub(); _circlePendingUnsub = null; }
   list.innerHTML = '<div style="text-align:center;padding:20px;color:rgba(255,255,255,0.3);font-size:13px">Se încarcă...</div>';
-  db.collection('contributors').where('status','==','pending')
+  _circlePendingUnsub = db.collection('contributors').where('status','==','pending')
     .onSnapshot(function(snap) {
       var badge = document.getElementById('badge-circle');
       if(badge) { badge.textContent = snap.size; badge.style.display = snap.size > 0 ? 'inline' : 'none'; }
@@ -1571,7 +1573,7 @@ function loadCirclePending() {
           + '</div>'
           + '</div>'
           + '<div style="display:flex;gap:8px">'
-          + '<button onclick="deployCircleId(\'' + doc.id + '\', \'' + (d.alias||'INSIDER') + '\')" style="flex:1;padding:12px;background:rgba(212,175,55,0.15);border:1px solid rgba(212,175,55,0.35);border-radius:10px;color:#D4AF37;font-weight:800;font-size:12px;cursor:pointer;min-height:44px;font-family:inherit">⬡ VERIFY & DEPLOY IDENTITY</button>'
+          + '<button onclick="deployCircleId(\'' + doc.id + '\', \'' + (d.alias||'INSIDER') + '\', event)" style="flex:1;padding:12px;background:rgba(212,175,55,0.15);border:1px solid rgba(212,175,55,0.35);border-radius:10px;color:#D4AF37;font-weight:800;font-size:12px;cursor:pointer;min-height:44px;font-family:inherit">⬡ VERIFY & DEPLOY IDENTITY</button>'
           + '<button onclick="rejectCircle(\'' + doc.id + '\')" style="padding:12px 14px;background:rgba(255,59,48,0.08);border:1px solid rgba(255,59,48,0.2);border-radius:10px;color:#ff3b30;font-weight:700;font-size:12px;cursor:pointer;min-height:44px;font-family:inherit">✕</button>'
           + '</div>';
         list.appendChild(card);
@@ -1581,10 +1583,12 @@ function loadCirclePending() {
     });
 }
 
+var _circleActiveUnsub = null;
 function loadCircleActive() {
   var list = document.getElementById('circle-active-list');
   if(!list) return;
-  db.collection('contributors').where('status','==','active')
+  if(_circleActiveUnsub) { _circleActiveUnsub(); _circleActiveUnsub = null; }
+  _circleActiveUnsub = db.collection('contributors').where('status','==','active')
     .onSnapshot(function(snap) {
       var stats = document.getElementById('circle-stats');
       if(stats) stats.textContent = snap.size + ' activi / 100';
@@ -1615,7 +1619,7 @@ function loadCircleActive() {
     });
 }
 
-async function deployCircleId(uid, alias) {
+async function deployCircleId(uid, alias, event) {
   if(!confirm('Ai verificat plata de 29 lei de la ' + alias + ' în Salt Bank?\n\nApasă OK pentru a activa identitatea VV·CORE.')) return;
   var btn = event.target;
   btn.textContent = 'SE DEPLOYEAZĂ...';
