@@ -897,6 +897,7 @@ function showSection(name) {
   if (name === 'map') initCEOMap();
   if (name === 'vvhi') loadVVhi();
   if (name === 'config') loadConfig();
+  if (name === 'circle') switchCircleTab('pending');
 
   logCEOAction('NAV', 'Navigat la secțiunea: ' + name);
 }
@@ -1572,8 +1573,8 @@ function loadCirclePending() {
           + '</div>'
           + '</div>'
           + '<div style="display:flex;gap:8px">'
-          + '<button onclick="deployCircleId('' + doc.id + '','' + (d.alias||'INSIDER').replace(/'/g,"\'") + '')" style="flex:1;padding:12px;background:rgba(212,175,55,0.15);border:1px solid rgba(212,175,55,0.35);border-radius:10px;color:#D4AF37;font-weight:800;font-size:12px;cursor:pointer;min-height:44px;font-family:inherit">⬡ VERIFY & DEPLOY IDENTITY</button>'
-          + '<button onclick="rejectCircle('' + doc.id + '')" style="padding:12px 14px;background:rgba(255,59,48,0.08);border:1px solid rgba(255,59,48,0.2);border-radius:10px;color:#ff3b30;font-weight:700;font-size:12px;cursor:pointer;min-height:44px;font-family:inherit">✕</button>'
+          + '<button onclick="deployCircleId(\'' + doc.id + '\', \'' + (d.alias||'INSIDER') + '\')" style="flex:1;padding:12px;background:rgba(212,175,55,0.15);border:1px solid rgba(212,175,55,0.35);border-radius:10px;color:#D4AF37;font-weight:800;font-size:12px;cursor:pointer;min-height:44px;font-family:inherit">⬡ VERIFY & DEPLOY IDENTITY</button>'
+          + '<button onclick="rejectCircle(\'' + doc.id + '\')" style="padding:12px 14px;background:rgba(255,59,48,0.08);border:1px solid rgba(255,59,48,0.2);border-radius:10px;color:#ff3b30;font-weight:700;font-size:12px;cursor:pointer;min-height:44px;font-family:inherit">✕</button>'
           + '</div>';
         list.appendChild(card);
       });
@@ -1654,9 +1655,9 @@ async function deployCircleId(uid, alias) {
       timestamp: firebase.firestore.FieldValue.serverTimestamp()
     }).catch(function(){});
 
-    showNotification('✅ ' + newId + ' deploiat pentru ' + alias + '!', 'success');
+    showNotif('✅ ' + newId + ' deploiat pentru ' + alias + '!', 'success');
   } catch(e) {
-    showNotification('Eroare: ' + e.message, 'error');
+    showNotif('Eroare: ' + e.message, true);
     btn.textContent = '⬡ VERIFY & DEPLOY IDENTITY';
     btn.style.opacity = '1';
     btn.style.pointerEvents = 'auto';
@@ -1676,17 +1677,10 @@ async function rejectCircle(uid) {
     read: false,
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
   });
-  showNotification('Cerere respinsă.', 'error');
+  showNotif('Cerere respinsă.');
 }
 
-// Încarcă Inner Circle când se deschide secțiunea
-var _origShowSection = showSection;
-showSection = function(name) {
-  _origShowSection(name);
-  if(name === 'circle') {
-    switchCircleTab('pending');
-  }
-};
+// Inner Circle se incarca prin showSection direct
 
 </script>
 </body>
