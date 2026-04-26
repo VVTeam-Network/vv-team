@@ -540,7 +540,7 @@ firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(conso
 
 auth.onAuthStateChanged(async (user) => {
   if (!user) {
-    window.location.href = 'index.html';
+    document.getElementById('login-screen').style.display = 'flex';
     return;
   }
   try {
@@ -552,11 +552,11 @@ auth.onAuthStateChanged(async (user) => {
       initDashboard();
     } else {
       console.warn('Rol insuficient.');
-      window.location.href = 'index.html';
+      document.getElementById('login-screen').style.display = 'flex';
     }
   } catch (e) {
     console.error('Auth check error:', e);
-    window.location.href = 'index.html';
+    document.getElementById('login-screen').style.display = 'flex';
   }
 });
 
