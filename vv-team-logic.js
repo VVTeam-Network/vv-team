@@ -502,3 +502,21 @@ async function rejectCircle(uid) {
     showNotif('Cerere respinsă.');
   } catch(e) { showNotif('Eroare: ' + e.message, true); }
 }
+
+// FIX iOS Safari — listener direct pe butonul de login
+document.addEventListener('DOMContentLoaded', function() {
+  var btn = document.querySelector('.login-btn');
+  if (btn) {
+    btn.addEventListener('touchend', function(e) {
+      e.preventDefault();
+      var email = document.getElementById('login-email').value;
+      var pass = document.getElementById('login-pass').value;
+      handleLogin(email, pass);
+    });
+    btn.addEventListener('click', function(e) {
+      var email = document.getElementById('login-email').value;
+      var pass = document.getElementById('login-pass').value;
+      handleLogin(email, pass);
+    });
+  }
+});
