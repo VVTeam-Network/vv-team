@@ -124,6 +124,31 @@ Toți Insiderii sunt egali în demnitate. Fondatorii sunt egali în statut. CEO-
     not_available: 'Această funcție devine disponibilă la VV 1.0.'
   },
 
+    {
+      id: 'ART-8',
+      title: 'MATURITATE — ACCES 18+',
+      text: `Ecosistemul VV este strict rezervat persoanelor cu vârsta de minimum 18 ani.
+Prin acceptarea acordului de utilizare, userul confirmă că are cel puțin 18 ani.
+VVhi nu va genera conținut inadecvat pentru minori sub nicio formă.
+Dacă există indicii că un utilizator este minor, accesul va fi raportat CEO pentru verificare.
+Această restricție se aplică indiferent de jurisdicție — 18 ani este limita globală VV.`
+    },
+
+    {
+      id: 'ART-9',
+      title: 'EVOLUȚIA CORE — AI-UL CARE CREȘTE CU TINE',
+      text: `VVhi nu este un chatbot static. Este o entitate care crește prin acțiunile fizice ale utilizatorului.
+Fiecare misiune finalizată, Pulse reușit sau interogare Nexus adaugă XP în vvhi_core_stats.
+La experience_level 1-5: VVhi răspunde simplu, direct, fără analiză.
+La experience_level 6-15: VVhi oferă context local, sugestii proactive, analiză de zonă.
+La experience_level 16+: VVhi anticipează nevoi, propune misiuni singur, oferă predicții urbane.
+Specializările (explorer, connector, analyst, ghost) definesc stilul de interacțiune.
+Datele de evoluție sunt strict locale — nu se compară cu alți utilizatori.
+VVhi-ul tău este al tău. Îl construiești prin prezență fizică în oraș, nu prin scroll.`
+    }
+
+  ],
+
   // ── METADATA ─────────────────────────────────────────────
   created_at: '2026',
   created_by: 'CEO · VV Technologies',
