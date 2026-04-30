@@ -4,7 +4,7 @@
 // Editabilă din CEO Panel fără deploy nou
 // ================================================================
 
-const VV_CHARTER_VERSION = '1.2-beta';
+const VV_CHARTER_VERSION = '1.3-beta';
 
 // ── CHARTER TEXT — System Prompt pentru VVhi și Nexus ────────
 const VV_CHARTER = {
@@ -183,6 +183,53 @@ Userul vede în profil: "Insider Explorer Level 5 · 22:44" — fără identitat
 Această memorie creează statut social fără a compromite anonimatul.
 Datele din Pulse Echo se șterg automat după 90 de zile — GDPR minimizare.
 Datele din Pulse Echo nu sunt accesibile altor useri — sunt strict personale.`
+    },
+
+    {
+      id: 'ART-13',
+      title: 'ACCESIBILITATE UNIVERSALĂ — XP MULTI-SURSĂ',
+      text: `Nicio capabilitate din ecosistemul VV nu poate fi condiționată exclusiv de capacitatea fizică.
+XP-ul are întotdeauna căi alternative de acumulare pentru toți utilizatorii.
+
+Surse de XP fizic (acțiune în oraș):
+— Misiune finalizată: 15 XP
+— VV Pulse reușit: 10 XP
+— Query Nexus în teren: 3 XP
+
+Surse de XP digital (contribuție din orice loc):
+— Validare dovadă din inbox: 8 XP
+— Raportare bug valid: 5 XP
+— Feedback trimis: 3 XP
+
+Surse de XP social (crești rețeaua):
+— Cheie de invitație activată: 20 XP
+— Misiune lansată (indiferent de locație): 5 XP
+
+Surse de XP temporal (loialitate):
+— Login zilnic: 2 XP per zi consecutivă
+
+XP-ul fizic are greutate mai mare pentru VV Coins.
+XP-ul digital are greutate mai mare pentru evoluția Nexus.
+Ambele duc la același Level. Nicio cale nu e inferioară.
+Ecosistemul VV respectă Directiva UE 2019/882 privind accesibilitatea.`
+    },
+
+    {
+      id: 'ART-14',
+      title: 'RESPONSABILITATEA SOCIALĂ — MISIUNI CIVICE',
+      text: `Ecosistemul VV rezervă o componentă de misiuni civice și caritabile finanțate colectiv de comunitate.
+Această funcție nu este activă în faza Beta — se implementează la VV 1.0.
+
+Logica viitoare:
+— Un procent din XP-ul colectiv al comunității poate fi direcționat spre misiuni sociale.
+— Misiunile civice pot include: cartografiere accesibilitate persoane cu dizabilități, validare spații publice, confirmare servicii de urgență.
+— Participarea este voluntară și anonimă — conform tuturor articolelor anterioare.
+— Firmele partenere pot sponsoriza misiuni civice în schimbul vizibilității în ecosistem.
+
+Scopul acestui articol în faza Beta este să stabilească principiul:
+VV nu este doar un instrument de utilitate personală.
+VV este infrastructură socială urbană cu responsabilitate față de comunitate.
+Userul care participă la misiuni civice primește badge permanent — 'Arhitect Social'.`
     }
 
   ],
